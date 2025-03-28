@@ -24,11 +24,11 @@ class AudioApp(QWidget):
         self.loop_index = 0
 
         # The file list
-        self.file_list = QListWidget()
+        self.song_list = QListWidget()
 
         # Enable drag & drop
-        self.file_list.setAcceptDrops(True)
-        self.file_list.setDragEnabled(False)
+        self.song_list.setAcceptDrops(True)
+        self.song_list.setDragEnabled(False)
 
         # Enable main window drag and drop
         self.setAcceptDrops(True)
@@ -176,7 +176,7 @@ class AudioApp(QWidget):
         self.master.addLayout(adjust_settings_layout)
 
         # playlist
-        col1.addWidget(self.file_list)
+        col1.addWidget(self.song_list)
 
         # adding the layouts
         col2.addLayout(self.playback_buttons_layout_top)
@@ -226,7 +226,7 @@ class AudioApp(QWidget):
 
         # speed slider
         self.speed_slider.sliderMoved.connect(self.update_speed)
-        self.file_list.itemDoubleClicked.connect(self.play_new_song)
+        self.song_list.itemDoubleClicked.connect(self.play_new_song)
         self.speed_slider.valueChanged.connect(self.update_speed)
 
         # volume slider
@@ -246,16 +246,16 @@ class AudioApp(QWidget):
 
         file, _ = QFileDialog.getOpenFileName(self, "Select File", filter="Audio Files (*.mp3)")
         if file:
-            self.file_list.clear()
+            self.song_list.clear()
             self.playlist = [file]
-            self.file_list.addItem(os.path.basename(file))
+            self.song_list.addItem(os.path.basename(file))
 
 
     def open_directory(self):
         path = QFileDialog.getExistingDirectory(self, "Select Folder")  # TO BE FIXED
 
         if path:
-            self.file_list.clear()
+            self.song_list.clear()
             self.folder_path = path
             self.playlist = []
 
@@ -263,13 +263,13 @@ class AudioApp(QWidget):
                 if filename.endswith(".mp3"):
                     full_path = os.path.join(path, filename)
                     self.playlist.append(full_path)
-                    self.file_list.addItem(filename)
+                    self.song_list.addItem(filename)
 
 
     def play_audio(self):
         self.progress_bar.setEnabled(True)
 
-        if self.paused and self.file_list.currentRow() == self.current_song_index:
+        if self.paused and self.song_list.currentRow() == self.current_song_index:
             self.media_player.play()
             self.paused = False
 
@@ -284,7 +284,7 @@ class AudioApp(QWidget):
 
     def play_new_song(self):
 
-        self.current_song_index = self.file_list.currentRow()
+        self.current_song_index = self.song_list.currentRow()
 
         if self.current_song_index >= 0:
             file_path = self.playlist[self.current_song_index]
@@ -301,13 +301,13 @@ class AudioApp(QWidget):
     def play_next_song(self, status):
         if status == QMediaPlayer.MediaStatus.EndOfMedia:
             if self.loop_mode == "LOOP ONE":
-                self.file_list.setCurrentRow(self.current_song_index)
+                self.song_list.setCurrentRow(self.current_song_index)
                 self.play_audio()
 
             elif self.loop_mode == "LOOP ALL" and self.current_song_index >= len(self.playlist) - 1:
                 print(self.loop_mode)
                 self.current_song_index = 0
-                self.file_list.setCurrentRow(self.current_song_index)
+                self.song_list.setCurrentRow(self.current_song_index)
                 self.play_audio()
                 return
 
@@ -315,11 +315,11 @@ class AudioApp(QWidget):
                 if self.shuffle:
                     self.current_song_index = random.randint(0, len(self.playlist) - 1)
                 else:
-                    self.current_song_index = self.file_list.currentRow() + 1
+                    self.current_song_index = self.song_list.currentRow() + 1
 
 
             if self.current_song_index < len(self.playlist):
-                self.file_list.setCurrentRow(self.current_song_index)  # Keep UI in sync
+                self.song_list.setCurrentRow(self.current_song_index)  # Keep UI in sync
                 self.play_audio()
             else:
                 self.media_player.stop()
@@ -330,11 +330,11 @@ class AudioApp(QWidget):
 
 
         else:
-            self.current_song_index = self.file_list.currentRow() + 1
+            self.current_song_index = self.song_list.currentRow() + 1
 
 
         if self.current_song_index < len(self.playlist):
-            self.file_list.setCurrentRow(self.current_song_index)  # Keep UI in sync
+            self.song_list.setCurrentRow(self.current_song_index)  # Keep UI in sync
             self.play_audio()
         else:
             self.media_player.stop()
@@ -343,12 +343,12 @@ class AudioApp(QWidget):
         if self.shuffle:
             self.current_song_index = random.randint(0, len(self.playlist) - 1)
         else:
-            if self.file_list.currentRow() > 0:
-                self.current_song_index = self.file_list.currentRow() - 1
+            if self.song_list.currentRow() > 0:
+                self.current_song_index = self.song_list.currentRow() - 1
 
 
         if self.current_song_index < len(self.playlist):
-            self.file_list.setCurrentRow(self.current_song_index)  # Keep UI in sync
+            self.song_list.setCurrentRow(self.current_song_index)  # Keep UI in sync
             self.play_audio()
         else:
             self.media_player.stop()
@@ -503,12 +503,15 @@ class AudioApp(QWidget):
         if os.path.exists(path):
             with open(path, "r") as file:
                 self.playlist = json.load(file)
-            self.file_list.clear()
+            self.song_list.clear()
 
             for idx, file in enumerate(self.playlist, start=1):
                 song_name = os.path.basename(file)
-                self.file_list.addItem(f"{idx}. {song_name}")
+                self.song_list.addItem(f"{idx}. {song_name}")
+
                 idx += 1
+
+
 
     def save_playlist(self):
         if self.playlist:
@@ -550,13 +553,14 @@ class AudioApp(QWidget):
     def format_time(self, ms):
         seconds = ms // 1000
         minutes = seconds // 60
+        # fit seconds to 0-59
         seconds = seconds % 60
         return f"{minutes:02}:{seconds:02}"
 
     # Update song numbers if new stuff is added
     def renumber_playlist(self):
-        for i in range(self.file_list.count()):
-            item = self.file_list.item(i)
+        for i in range(self.song_list.count()):
+            item = self.song_list.item(i)
             file_path = self.playlist[i]
             song_name = os.path.basename(file_path)
             # renames the item
@@ -574,7 +578,7 @@ class AudioApp(QWidget):
                 print("External Drop:", file_path)
                 if file_path.endswith(".mp3") and file_path not in self.playlist:
                     self.playlist.append(file_path)
-                    self.file_list.addItem(os.path.basename(file_path))
+                    self.song_list.addItem(os.path.basename(file_path))
             self.renumber_playlist()
             event.acceptProposedAction()
         else:
@@ -582,7 +586,7 @@ class AudioApp(QWidget):
 
 
     def update_playlist_order(self, event):
-        new_order = [self.file_list.item(i).text() for i in range(self.file_list.count())]
+        new_order = [self.song_list.item(i).text() for i in range(self.song_list.count())]
         print("New Order:", new_order)
         # Find new indices
         old_playlist = copy.deepcopy(self.playlist)
@@ -615,17 +619,16 @@ class AudioApp(QWidget):
             self.btn_loop.setText("🔁:ALL")
 
     def remove_song(self):
-        selected_item = self.file_list.selectedItems()
+        #Fixed this one method by using playlist's own numbering to remove entries
 
-        if selected_item:
-            song_to_remove = selected_item[0].text()
-            if song_to_remove in self.playlist:
-                self.playlist.remove(song_to_remove)
+        selected_item = self.song_list.selectedItems()
+        index = selected_item[0].text()
+        index = int(index.split(".")[0]) - 1
+        print(index)
 
-
-        # remove from QlistWidget
-        self.file_list.takeItem(self.file_list.row(selected_item[0]))
-
+        del self.playlist[index]
+        self.song_list.takeItem(index)
+        self.renumber_playlist()
 
     def clear_playlist(self):
 
@@ -638,7 +641,7 @@ class AudioApp(QWidget):
         response = msg.exec()  # This will return the button clicked
         if response == QMessageBox.StandardButton.Yes:
             self.playlist.clear()
-            self.file_list.clear()
+            self.song_list.clear()
 
 
     def load_custom_playlist(self):
@@ -648,11 +651,11 @@ class AudioApp(QWidget):
 
             with open(custom_playlist_file, "r") as file:
                 self.playlist = json.load(file)
-            self.file_list.clear()
+            self.song_list.clear()
 
             for idx, file in enumerate(self.playlist, start=1):
                 song_name = os.path.basename(file)
-                self.file_list.addItem(f"{idx}. {song_name}")
+                self.song_list.addItem(f"{idx}. {song_name}")
 
 
 
